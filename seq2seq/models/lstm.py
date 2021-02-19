@@ -140,6 +140,16 @@ class LSTMEncoder(Seq2SeqEncoder):
         ___QUESTION-1-DESCRIBE-A-START___
         Describe what happens when self.bidirectional is set to True. 
         What is the difference between final_hidden_states and final_cell_states?
+        
+        Answer:
+        When self.bidirectional is set to True, the forward and backward directions of hidden states and
+         cell states from the LSTM are concatenated.
+                
+        final_hidden_states is the variable containing hidden states at the final time step within the LSTM, the 
+        hidden states provide the LSTM with its working memory as they are updated each time step. 
+        On the other hand, final_cell_states is the variable containing the cell states at the final time step. 
+        The cell states are the long term memory of the LSTM, where useful information is stored for future timesteps, 
+        as these cell states use a linear activation, they do not encounter the vanishing gradient problem.
         '''
         if self.bidirectional:
             def combine_directions(outs):
@@ -179,6 +189,8 @@ class AttentionLayer(nn.Module):
         '''
         ___QUESTION-1-DESCRIBE-B-START___
         Describe how the attention context vector is calculated. Why do we need to apply a mask to the attention scores?
+        
+        In order to calculate the attention context vector, the
         '''
         if src_mask is not None:
             src_mask = src_mask.unsqueeze(dim=1)
