@@ -190,7 +190,11 @@ class AttentionLayer(nn.Module):
         ___QUESTION-1-DESCRIBE-B-START___
         Describe how the attention context vector is calculated. Why do we need to apply a mask to the attention scores?
         
-        In order to calculate the attention context vector, the
+        In order to calculate the attention context vector, the encoders hidden states are multiplied with their 
+        respective alignment scores.
+        
+        We need to apply a mask to the attention scores in order to prevent trivial copying via the self-attention
+         mechanism, and ensure that the model is truly learning.
         '''
         if src_mask is not None:
             src_mask = src_mask.unsqueeze(dim=1)
