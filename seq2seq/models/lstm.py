@@ -215,6 +215,8 @@ class AttentionLayer(nn.Module):
         ___QUESTION-1-DESCRIBE-C-START___
         How are attention scores calculated? What role does matrix multiplication (i.e. torch.bmm()) play 
         in aligning encoder and decoder representations?
+        
+        
         '''
         projected_encoder_out = self.src_projection(encoder_out).transpose(2, 1)
         attn_scores = torch.bmm(tgt_input.unsqueeze(dim=1), projected_encoder_out)
