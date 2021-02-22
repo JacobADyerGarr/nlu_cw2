@@ -216,7 +216,11 @@ class AttentionLayer(nn.Module):
         How are attention scores calculated? What role does matrix multiplication (i.e. torch.bmm()) play 
         in aligning encoder and decoder representations?
         
+        The attention scores are calculates by first passing the output from the encoder through a linear hidden layer
+        (self.src_projection), and then multiplying the output from this with the target inputs after initially 
+        ensuring the dimensions of the matrices match (through transposition and unsqueezing).
         
+        Matrix multiplication is used 
         '''
         projected_encoder_out = self.src_projection(encoder_out).transpose(2, 1)
         attn_scores = torch.bmm(tgt_input.unsqueeze(dim=1), projected_encoder_out)
@@ -294,6 +298,10 @@ class LSTMDecoder(Seq2SeqDecoder):
         '''
         ___QUESTION-1-DESCRIBE-D-START___
         Describe how the decoder state is initialized. When is cached_state == None? What role does input_feed play?
+        
+        ...
+        
+        cached_state == None when 
         '''
         cached_state = utils.get_incremental_state(self, incremental_state, 'cached_state')
         if cached_state is not None:
