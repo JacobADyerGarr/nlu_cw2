@@ -97,6 +97,10 @@ class TransformerEncoder(Seq2SeqEncoder):
         ___QUESTION-6-DESCRIBE-A-START___
         What is the purpose of the positional embeddings in the encoder and decoder? Why can't we use only
         the embeddings similar to for the LSTM? 
+        
+        The purpose of positional embeddings is to represent the position of tokens in a sentence using a unique 
+        real-valued vector, as self-attention is position invariant and cannot represent word order on its own.
+        We then let the network learn a useful interpretation from these embeddings.
         '''
         embeddings += self.embed_positions(src_tokens)
         '''
@@ -187,6 +191,12 @@ class TransformerDecoder(Seq2SeqDecoder):
             ___QUESTION-6-DESCRIBE-B-START___
             What is the purpose of self_attn_mask? Why do we need it in the decoder but not in the encoder?
             Why do we not need a mask for incremental decoding?
+            
+            The variable self\_attn\_mask is used to hide from the self-attention mechanism certain parts of the 
+            sentence, usually the tokens after the current input. The self\_attn\_mask is not necessary for the encoder,
+            where we have full access to the whole sentence, however the decoder cannot have access to future inputs 
+            from the sentence as it could trivially copy the next input as its output. In incremental decoding we only
+            have access to the previous word so we do not need a mask.
             '''
             self_attn_mask = self.buffered_future_mask(forward_state) if incremental_state is None else None
             '''
@@ -215,6 +225,9 @@ class TransformerDecoder(Seq2SeqDecoder):
             ___QUESTION-6-DESCRIBE-C-START___
             Why do we need a linear projection after the decoder layers? What is the dimensionality of forward_state
             after this line? What would the output represent if features_only=True?
+            
+            We need a linear projection to convert the low-dimensional representation of the decoder layers back into vocabulary space. 
+            The dimensionality of forward\_state after the line is (batch_size, num_tokens, dictionary_size). If features\_only is True, then the output is the final encoding of the transformer in embedding space.
             '''
             forward_state = self.embed_out(forward_state)
             '''

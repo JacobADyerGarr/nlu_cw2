@@ -78,10 +78,15 @@ def main(args):
     train_dataset = load_data(split='train') if not args.train_on_tiny else load_data(split='tiny_train')
     valid_dataset = load_data(split='valid')
 
+    # Check CUDA availability
+    device = torch.device("cpu")
+    if torch.cuda.is_available():
+        device = torch.device("cuda:0")
+
     # Build model and optimization criterion
-    model = models.build_model(args, src_dict, tgt_dict)
+    model = models.build_model(args, src_dict, tgt_dict).to(device)
     logging.info('Built a model with {:d} parameters'.format(sum(p.numel() for p in model.parameters())))
-    criterion = nn.CrossEntropyLoss(ignore_index=src_dict.pad_idx, reduction='sum')
+    criterion = nn.CrossEntropyLoss(ignore_index=src_dict.pad_idx, reduction='sum').to(device)
 
     # Instantiate optimizer and learning rate scheduler
     optimizer = torch.optim.Adam(model.parameters(), args.lr)
@@ -96,7 +101,7 @@ def main(args):
 
     for epoch in range(last_epoch + 1, args.max_epoch):
         train_loader = \
-            torch.utils.data.DataLoader(train_dataset, num_workers=1, collate_fn=train_dataset.collater,
+            torch.utils.data.DataLoader(train_dataset, collate_fn=train_dataset.collater, # num_workers=1,
                                         batch_sampler=BatchSampler(train_dataset, args.max_tokens, args.batch_size, 1,
                                                                    0, shuffle=True, seed=42))
         model.train()
@@ -112,16 +117,21 @@ def main(args):
 
         # Iterate over the training set
         for i, sample in enumerate(progress_bar):
-
             if len(sample) == 0:
                 continue
             model.train()
+
+            for k, v in sample.items():
+                if isinstance(v, torch.Tensor):
+                    sample[k] = v.to(device)
 
             '''
             ___QUESTION-1-DESCRIBE-F-START___
             Describe what the following lines of code do.
             '''
-            output, _ = model(sample['src_tokens'], sample['src_lengths'], sample['tgt_inputs'])
+            output, _ = model(sample['src_tokens'],
+                              sample['src_lengths'],
+                              sample['tgt_inputs'])
 
             loss = \
                 criterion(output.view(-1, output.size(-1)), sample['tgt_tokens'].view(-1)) / len(sample['src_lengths'])
@@ -146,7 +156,7 @@ def main(args):
             value / len(progress_bar)) for key, value in stats.items())))
 
         # Calculate validation loss
-        valid_perplexity = validate(args, model, criterion, valid_dataset, epoch)
+        valid_perplexity = validate(args, model, criterion, valid_dataset, epoch, device)
         model.train()
 
         # Save checkpoints
@@ -164,7 +174,7 @@ def main(args):
             break
 
 
-def validate(args, model, criterion, valid_dataset, epoch):
+def validate(args, model, criterion, valid_dataset, epoch, device):
     """ Validates model performance on a held-out development set. """
     valid_loader = \
         torch.utils.data.DataLoader(valid_dataset, num_workers=1, collate_fn=valid_dataset.collater,
@@ -180,6 +190,9 @@ def validate(args, model, criterion, valid_dataset, epoch):
     for i, sample in enumerate(valid_loader):
         if len(sample) == 0:
             continue
+        for k, v in sample.items():
+            if isinstance(v, torch.Tensor):
+                sample[k] = v.to(device)
         with torch.no_grad():
             # Compute loss
             output, attn_scores = model(sample['src_tokens'], sample['src_lengths'], sample['tgt_inputs'])

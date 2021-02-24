@@ -33,6 +33,9 @@ class TransformerEncoderLayer(nn.Module):
         What is the purpose of encoder_padding_mask? What will the output shape of `state' Tensor 
         be after multi-head attention? HINT: formulate your  answer in terms of 
         constituent variables like batch_size, embed_dim etc...
+        
+        The variable encoder\_padding\_mask tells the attention mechanism which parts of the input is padding, so that it may ignore these values by setting them to minus infinity before calculating the attention weights.
+        The output shape of the state tensor is (num_tokens, batch_size, embed_dim)  
         '''
         state, _ = self.self_attn(query=state, key=state, value=state, key_padding_mask=encoder_padding_mask)
         '''
@@ -115,6 +118,9 @@ class TransformerDecoderLayer(nn.Module):
         ___QUESTION-6-DESCRIBE-E-START___
         How does encoder attention differ from self attention? What is the difference between key_padding_mask 
         and attn_mask? If you understand this difference, then why don't we need to give attn_mask here?
+        
+        Encoder attention calculates multi-head attention over the output of the final encoder block as key-value input and the output of the previous sublayer as query. It also does not mask future-position inputs.
+        Both key_padding_mask records which parts of the input is padding, while attn_mask is used to ignore certain parts of the actual input, usually the future tokens in the sentence. The attn_mask is not needed for the encoder attention as we have already masked the input in the self-attention sublayer and no longer have access to the complete input sequence. 
         '''
         state, attn = self.encoder_attn(query=state,
                                         key=encoder_out,
@@ -195,6 +201,7 @@ class MultiHeadAttention(nn.Module):
 
         # Get size features
         tgt_time_steps, batch_size, embed_dim = query.size()
+        src_time_steps = key.size(0)
         assert self.embed_dim == embed_dim
 
         '''
@@ -208,11 +215,41 @@ class MultiHeadAttention(nn.Module):
         # attn must be size [tgt_time_steps, batch_size, embed_dim]
         # attn_weights is the combined output of h parallel heads of Attention(Q,K,V) in Vaswani et al. 2017
         # attn_weights must be size [num_heads, batch_size, tgt_time_steps, key.size(0)]
-        # TODO: REPLACE THESE LINES WITH YOUR IMPLEMENTATION ------------------------ CUT
-        attn = torch.zeros(size=(tgt_time_steps, batch_size, embed_dim))
-        attn_weights = torch.zeros(size=(self.num_heads, batch_size, tgt_time_steps, -1)) if need_weights else None
-        # TODO: --------------------------------------------------------------------- CUT
 
+        # Apply the linear projections to the inputs, melt the batch and head dimensions, and finally transpose the
+        #  first two dimensions so that our matrices can be processed with torch.bmm
+        queries = self.q_proj(query) \
+            .view(tgt_time_steps, batch_size * self.num_heads, self.head_embed_size) \
+            .transpose(0, 1)
+        keys = self.k_proj(key) \
+            .view(src_time_steps, batch_size * self.num_heads, self.head_embed_size) \
+            .transpose(0, 1)
+        values = self.v_proj(value) \
+            .view(src_time_steps, batch_size * self.num_heads, self.head_embed_size) \
+            .transpose(0, 1)
+
+        # Calculate eq. 1 in the Vaswani paper with scaling, and overwrite everything we want to ignore
+        #  as given by the masks with minus infinity
+        sims = torch.bmm(queries, keys.transpose(1, 2)) / self.head_scaling
+        if key_padding_mask is not None:
+            sims = sims.view(batch_size, self.num_heads, tgt_time_steps, src_time_steps)
+            sims = sims.masked_fill(key_padding_mask.unsqueeze(1).unsqueeze(2), float('-inf'))
+            sims = sims.view(batch_size * self.num_heads, tgt_time_steps, src_time_steps)
+        if attn_mask is not None:
+            sims += attn_mask
+
+        # Normalise the weights; minus infinities become zero here. Then finish calculating eq. 1.
+        weights = F.softmax(sims, dim=2)
+        heads = torch.bmm(weights, values).transpose(0, 1)
+        heads = heads.reshape(tgt_time_steps, batch_size, self.embed_dim)
+        attn = self.out_proj(heads)
+
+        # Morph the weights into the correct form if necessary
+        if need_weights:
+            attn_weights = weights.view(self.num_heads, batch_size,
+                                        tgt_time_steps, src_time_steps)
+        else:
+            attn_weights = None
         '''
         ___QUESTION-7-MULTIHEAD-ATTENTION-END
         '''
