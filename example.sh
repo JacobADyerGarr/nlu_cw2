@@ -16,7 +16,7 @@ RESULTS_ROOT="${ROOT}/results"
 mkdir -p ${RESULTS_ROOT}
 
 ### NAME YOUR EXPERIMENT HERE ##
-EXP_NAME="baseline"
+EXP_NAME="lexical.tiny"
 ################################
 
 ## Local variables for current experiment
@@ -30,6 +30,7 @@ mkdir -p ${EXP_ROOT}
 python train.py --save-dir "${EXP_ROOT}" \
                 --log-file "${EXP_ROOT}/log.out"  \
                 --data "${DATA_DIR}" \
+                --train-on-tiny \
                 ### ADDITIONAL ARGUMENTS HERE ###
 
 ## Prediction step
