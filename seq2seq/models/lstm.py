@@ -349,7 +349,7 @@ class LSTMDecoder(Seq2SeqDecoder):
                     # TODO: --------------------------------------------------------------------- CUT
                     context = torch.tanh(torch.bmm(step_attn_weights.unsqueeze(dim=1),
                                                    src_embeddings.transpose(0, 1).squeeze(dim=1)))
-                    lexical_contexts.append(torch.tanh(self.lexical_context_projection(context)) + context)
+                    lexical_contexts.append(torch.tanh(self.lex_context_projection_layer(context)) + context)
                     # TODO: --------------------------------------------------------------------- /CUT
 
             input_feed = F.dropout(input_feed, p=self.dropout_out, training=self.training)
@@ -374,7 +374,7 @@ class LSTMDecoder(Seq2SeqDecoder):
             # TODO: --------------------------------------------------------------------- CUT
             lexical_contexts = torch.cat(lexical_contexts, dim=0).view(tgt_time_steps, batch_size, self.embed_dim)
             lexical_contexts = lexical_contexts.transpose(0, 1)
-            decoder_output += self.lex_context_projection_layer(lexical_contexts)
+            decoder_output += self.final_lex_projection(lexical_contexts)
             # TODO: --------------------------------------------------------------------- /CUT
 
         return decoder_output, attn_weights
