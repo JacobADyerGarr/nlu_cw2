@@ -16,7 +16,7 @@ RESULTS_ROOT="${ROOT}/results"
 mkdir -p ${RESULTS_ROOT}
 
 ### NAME YOUR EXPERIMENT HERE ##
-EXP_NAME="lexical.tiny"
+EXP_NAME="lexical_tiny"
 ################################
 
 ## Local variables for current experiment
