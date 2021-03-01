@@ -30,7 +30,7 @@ mkdir -p ${EXP_ROOT}
 python train.py --save-dir "${EXP_ROOT}" \
                 --log-file "${EXP_ROOT}/log.out"  \
                 --data "${DATA_DIR}" \
-                --decoder-use-lexical_model True \
+                --decoder-use-lexical-model True \
                 ### ADDITIONAL ARGUMENTS HERE ###
 
 ## Prediction step
