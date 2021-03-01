@@ -374,7 +374,7 @@ class LSTMDecoder(Seq2SeqDecoder):
             # TODO: --------------------------------------------------------------------- CUT
             lexical_contexts = torch.cat(lexical_contexts, dim=0).view(tgt_time_steps, batch_size, self.embed_dim)
             lexical_contexts = lexical_contexts.transpose(0, 1)
-            decoder_output += self.final_lexical_projection(lexical_contexts)
+            decoder_output += self.lex_context_projection_layer(lexical_contexts)
             # TODO: --------------------------------------------------------------------- /CUT
 
         return decoder_output, attn_weights
