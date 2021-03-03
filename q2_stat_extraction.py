@@ -73,9 +73,10 @@ def count_matches(file_en, file_de):
 def main():
     # print(count_tokens('europarl_raw/train.en'))
     # print(count_tokens('europarl_raw/train.de'))
-    # print(count_unk('europarl_raw/train.en'))
-    # print(count_unk('europarl_raw/train.de'))
-    print(count_matches('europarl_raw/train.en', 'europarl_raw/train.de'))
+    print(count_unk('europarl_raw/train.en'))
+    print(count_unk('europarl_raw/train.de'))
+    # print(count_matches('europarl_raw/train.en', 'europarl_raw/train.de'))
+    pass
 
 
 if __name__ == '__main__':
