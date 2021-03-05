@@ -140,6 +140,19 @@ class LSTMEncoder(Seq2SeqEncoder):
         ___QUESTION-1-DESCRIBE-A-START___
         Describe what happens when self.bidirectional is set to True. 
         What is the difference between final_hidden_states and final_cell_states?
+        
+        Answer:
+        When self.bidirectional is set to True, a bidirectional LSTM is built. This processes each input in both the
+        forward and backward directions. In order to manage both directions, both final_hidden_states and 
+        final_cell_states need reordering, from being interweaved on even and odd indexes, to having all the forward
+        outputs, then all the backward outputs.
+                
+        final_hidden_states is the variable containing hidden states at the final time step within the LSTM, the 
+        hidden states provide the LSTM with its working memory as they are updated each time step. 
+        
+        On the other hand, final_cell_states is the variable containing the cell states at the final time step. 
+        The cell states are the long term memory of the LSTM, where useful information is stored for future timesteps, 
+        as these cell states use a linear activation, they do not encounter the vanishing gradient problem.
         '''
         if self.bidirectional:
             def combine_directions(outs):
@@ -179,6 +192,12 @@ class AttentionLayer(nn.Module):
         '''
         ___QUESTION-1-DESCRIBE-B-START___
         Describe how the attention context vector is calculated. Why do we need to apply a mask to the attention scores?
+        
+        In order to calculate the attention context vector, the encoders hidden states are multiplied with their 
+        respective alignment scores.
+        
+        We need to apply a mask to the attention scores in order to prevent trivial copying via the self-attention
+         mechanism, and ensure that the model is truly learning. <- TODO Check
         '''
         if src_mask is not None:
             src_mask = src_mask.unsqueeze(dim=1)
@@ -199,6 +218,12 @@ class AttentionLayer(nn.Module):
         ___QUESTION-1-DESCRIBE-C-START___
         How are attention scores calculated? What role does matrix multiplication (i.e. torch.bmm()) play 
         in aligning encoder and decoder representations?
+        
+        The attention scores are calculates by first passing the output from the encoder through a linear hidden layer
+        (self.src_projection), and then multiplying the output from this with the target inputs after initially 
+        ensuring the dimensions of the matrices match (through transposition and unsqueezing).
+        
+        Matrix multiplication is used TODO - Finish
         '''
         projected_encoder_out = self.src_projection(encoder_out).transpose(2, 1)
         attn_scores = torch.bmm(tgt_input.unsqueeze(dim=1), projected_encoder_out)
@@ -247,7 +272,8 @@ class LSTMDecoder(Seq2SeqDecoder):
         if self.use_lexical_model:
             # __QUESTION-5: Add parts of decoder architecture corresponding to the LEXICAL MODEL here
             # TODO: --------------------------------------------------------------------- CUT
-            pass
+            self.lex_context_projection_layer = nn.Linear(embed_dim, embed_dim, bias=False)
+            self.final_lex_projection = nn.Linear(embed_dim, len(dictionary))
             # TODO: --------------------------------------------------------------------- /CUT
 
     def forward(self, tgt_inputs, encoder_out, incremental_state=None):
@@ -276,6 +302,14 @@ class LSTMDecoder(Seq2SeqDecoder):
         '''
         ___QUESTION-1-DESCRIBE-D-START___
         Describe how the decoder state is initialized. When is cached_state == None? What role does input_feed play?
+        
+        The decoder state is initialized by either generating the previous states, or retrieving a cached state.
+        
+        cached_state == None when if there is no previous state for the instance of the module. This would usually only
+        happen when the decoder is first being run, as that is when the first forward pass occurs and prior to that, no
+        state could possibly be cached.
+        
+        input_feed is to store the decoders predictions <- TODO - Check
         '''
         cached_state = utils.get_incremental_state(self, incremental_state, 'cached_state')
         if cached_state is not None:
@@ -310,6 +344,13 @@ class LSTMDecoder(Seq2SeqDecoder):
             ___QUESTION-1-DESCRIBE-E-START___
             How is attention integrated into the decoder? Why is the attention function given the previous 
             target state as one of its inputs? What is the purpose of the dropout layer?
+            
+            Attention is integrated as an additional layer at the end of the decoders forward pass.
+            
+            The attention function is given the previous target state alongside the decoder output in order to be used
+             to calculate the alignment scores.
+            
+            The dropout layer is added in order to reduce the chance of the model over-fitting during training.
             '''
             if self.attention is None:
                 input_feed = tgt_hidden_states[-1]
@@ -320,7 +361,9 @@ class LSTMDecoder(Seq2SeqDecoder):
                 if self.use_lexical_model:
                     # __QUESTION-5: Compute and collect LEXICAL MODEL context vectors here
                     # TODO: --------------------------------------------------------------------- CUT
-                    pass
+                    curr_context = torch.tanh(torch.bmm(step_attn_weights.unsqueeze(dim=1),
+                                                        src_embeddings.transpose(0, 1).squeeze(dim=1)))
+                    lexical_contexts.append(torch.tanh(self.lex_context_projection_layer(curr_context)) + curr_context)
                     # TODO: --------------------------------------------------------------------- /CUT
 
             input_feed = F.dropout(input_feed, p=self.dropout_out, training=self.training)
@@ -343,7 +386,9 @@ class LSTMDecoder(Seq2SeqDecoder):
         if self.use_lexical_model:
             # __QUESTION-5: Incorporate the LEXICAL MODEL into the prediction of target tokens here
             # TODO: --------------------------------------------------------------------- CUT
-            pass
+            lexical_contexts = torch.cat(lexical_contexts, dim=0).view(tgt_time_steps, batch_size, self.embed_dim)
+            lexical_contexts = lexical_contexts.transpose(0, 1)
+            decoder_output += self.final_lex_projection(lexical_contexts)
             # TODO: --------------------------------------------------------------------- /CUT
 
         return decoder_output, attn_weights

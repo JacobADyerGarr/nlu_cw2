@@ -8,7 +8,7 @@
 ###########
 
 # Activate Conda Environment [assuming your Miniconda installation is in your root directory]
-source ~/miniconda3/bin/activate nlu
+source ../miniconda3/bin/activate nlu
 
 # Define a location for all your experiments to save
 ROOT=$(git rev-parse --show-toplevel)
@@ -16,7 +16,7 @@ RESULTS_ROOT="${ROOT}/results"
 mkdir -p ${RESULTS_ROOT}
 
 ### NAME YOUR EXPERIMENT HERE ##
-EXP_NAME="baseline"
+EXP_NAME="lexical_full"
 ################################
 
 ## Local variables for current experiment
@@ -30,6 +30,7 @@ mkdir -p ${EXP_ROOT}
 python train.py --save-dir "${EXP_ROOT}" \
                 --log-file "${EXP_ROOT}/log.out"  \
                 --data "${DATA_DIR}" \
+                --decoder-use-lexical-model True \
                 ### ADDITIONAL ARGUMENTS HERE ###
 
 ## Prediction step

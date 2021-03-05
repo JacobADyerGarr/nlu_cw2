@@ -128,6 +128,12 @@ def main(args):
             '''
             ___QUESTION-1-DESCRIBE-F-START___
             Describe what the following lines of code do.
+            
+            The following lines of code create a single iteration of training the model. The model is first used to 
+             predict a batch, then the cross-entropy loss of the predictions is calculated and backpropagated through the 
+              network. It is worth noting that the gradients are normalized in order to ensure we do not encounter any
+              exploding gradients. Finaly the network is updated using the Adam optimizer, before the gradients are 
+              reset to zero for the next iteration.
             '''
             output, _ = model(sample['src_tokens'],
                               sample['src_lengths'],
